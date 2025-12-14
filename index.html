@@ -560,7 +560,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Smart Cat Feeder</h1>
+            <h1>🐱 Smart Cat Feeder</h1>
+            <p>Monitor and control your cat's feeding schedule</p>
         </div>
         
         <div class="main-panel">
@@ -959,4 +960,122 @@
         }
 
         function renderSchedules() {
-            const container
+            const container = document.getElementById('scheduleList');
+            
+            if (schedules.length === 0) {
+                container.innerHTML = '<p class="empty-state">No schedules yet. Add one above!</p>';
+                return;
+            }
+
+            container.innerHTML = schedules.map(s => `
+                <div class="schedule-item">
+                    <div class="schedule-info">
+                        <div class="schedule-time">⏰ ${s.time}</div>
+                        <div class="schedule-portion">🍽️ ${s.portion} portions</div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteSchedule('${s.time}')">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function saveSchedules() {
+            localStorage.setItem('catfeeder_schedules', JSON.stringify(schedules));
+        }
+
+        function loadSchedules() {
+            const saved = localStorage.getItem('catfeeder_schedules');
+            if (saved) {
+                schedules = JSON.parse(saved);
+                renderSchedules();
+            }
+        }
+
+        function syncSchedulesToESP32() {
+            if (!isConnected) return;
+            
+            const scheduleData = JSON.stringify(schedules);
+            mqttClient.publish(config.topics.schedule, scheduleData);
+            console.log('📅 Schedules synced to ESP32');
+        }
+
+        // Schedule Checker (runs every minute)
+        function startScheduleChecker() {
+            scheduleCheckInterval = setInterval(checkSchedules, 30000); // Check every 30 seconds
+            checkSchedules(); // Check immediately
+        }
+
+        function stopScheduleChecker() {
+            if (scheduleCheckInterval) {
+                clearInterval(scheduleCheckInterval);
+                scheduleCheckInterval = null;
+            }
+        }
+
+        function checkSchedules() {
+            const now = new Date();
+            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            // Send current time to ESP32
+            if (isConnected) {
+                mqttClient.publish(`${config.uniquePrefix}/currenttime`, currentTime);
+            }
+
+            schedules.forEach(schedule => {
+                if (schedule.time === currentTime) {
+                    // Only execute if not already executed in this minute
+                    const lastExecuted = localStorage.getItem(`last_exec_${schedule.time}`);
+                    const currentMinute = now.getTime() / 60000; // Minutes since epoch
+                    
+                    if (!lastExecuted || parseInt(lastExecuted) !== Math.floor(currentMinute)) {
+                        executeScheduledFeeding(schedule);
+                        localStorage.setItem(`last_exec_${schedule.time}`, Math.floor(currentMinute).toString());
+                    }
+                }
+            });
+        }
+
+        function executeScheduledFeeding(schedule) {
+            if (!isConnected) return;
+
+            mqttClient.publish(config.topics.feedNow, '1');
+            mqttClient.publish(config.topics.portion, schedule.portion.toString());
+            addLog(`⏰ Scheduled feeding: ${schedule.time} - ${schedule.portion} portions`, 'warning');
+        }
+
+        function updateStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const btn = document.getElementById('connectBtn');
+
+            if (connected) {
+                dot.classList.add('connected');
+                text.classList.add('connected');
+                text.textContent = 'Connected';
+                btn.textContent = 'Disconnect';
+                btn.classList.add('btn-disconnect');
+                document.getElementById('uniquePrefix').disabled = true;
+            } else {
+                dot.classList.remove('connected');
+                text.classList.remove('connected');
+                text.textContent = 'Disconnected';
+                btn.textContent = 'Connect to MQTT';
+                btn.classList.remove('btn-disconnect');
+                document.getElementById('uniquePrefix').disabled = false;
+            }
+        }
+
+        function addLog(message, type = '') {
+            const container = document.getElementById('logMessages');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString('id-ID');
+            entry.innerHTML = `<span class="log-time">[${time}]</span>${message}`;
+            container.insertBefore(entry, container.firstChild);
+
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>
