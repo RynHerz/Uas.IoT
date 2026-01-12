@@ -759,7 +759,7 @@
             subscribe(topic, qos = 0) {
                 if (this.isConnected) {
                     this.client.subscribe(topic, { qos });
-                    console.log(`📡 Subscribed: ${topic}`);
+                    console.log(`Subscribed: ${topic}`);
                 }
             }
 
@@ -769,7 +769,7 @@
                     message.destinationName = topic;
                     message.qos = qos;
                     this.client.send(message);
-                    console.log(`📤 Published to ${topic}: ${payload}`);
+                    console.log(`Published to ${topic}: ${payload}`);
                 }
             }
 
@@ -805,7 +805,7 @@
         let scheduleCheckInterval = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            addLog('🐱 Cat Feeder Dashboard initialized', 'info');
+            addLog('Cat Feeder Dashboard initialized', 'info');
             loadSchedules();
         });
 
@@ -820,7 +820,7 @@
         function connect() {
             const prefix = document.getElementById('uniquePrefix').value.trim();
             if (!prefix) {
-                alert('⚠️ Please enter a unique prefix!');
+                alert('Please enter a unique prefix!');
                 return;
             }
 
@@ -839,7 +839,7 @@
             mqttClient.onConnect(() => {
                 isConnected = true;
                 updateStatus(true);
-                addLog('✅ Connected successfully!', 'success');
+                addLog('Connected successfully!', 'success');
                 
                 mqttClient.subscribe(config.topics.foodLevel);
                 mqttClient.subscribe(config.topics.bowlWeight);
@@ -861,9 +861,9 @@
             });
 
             mqttClient.onMessage((topic, payload) => handleMessage(topic, payload));
-            mqttClient.onError((error) => addLog(`❌ Error: ${error.errorMessage}`, 'error'));
+            mqttClient.onError((error) => addLog(`Error: ${error.errorMessage}`, 'error'));
 
-            mqttClient.connect().catch(err => addLog(`❌ Connection failed`, 'error'));
+            mqttClient.connect().catch(err => addLog(`Connection failed`, 'error'));
         }
 
         function disconnect() {
@@ -878,24 +878,24 @@
         function handleMessage(topic, payload) {
             if (topic === config.topics.foodLevel) {
                 document.getElementById('foodLevel').textContent = payload;
-                addLog(`🍖 Container: ${payload}%`, 'info');
+                addLog(`Container: ${payload}%`, 'info');
             } else if (topic === config.topics.bowlWeight) {
                 const weight = parseFloat(payload).toFixed(1);
                 document.getElementById('bowlWeight').textContent = weight;
-                addLog(`⚖️ Bowl: ${weight}g`, 'success');
+                addLog(`Bowl: ${weight}g`, 'success');
             }
         }
 
         function feedNow() {
             if (!isConnected) {
-                alert('⚠️ Please connect to MQTT first!');
+                alert('Please connect to MQTT first!');
                 return;
             }
 
             const portion = document.getElementById('portionSlider').value;
             mqttClient.publish(config.topics.feedNow, '1');
             mqttClient.publish(config.topics.portion, portion);
-            addLog(`🍽️ Feeding ${portion} portions`, 'success');
+            addLog(`Feeding ${portion} portions`, 'success');
         }
 
         function updatePortion() {
@@ -908,12 +908,12 @@
             const portion = document.getElementById('schedulePortion').value;
 
             if (!time) {
-                alert('⚠️ Please select a time!');
+                alert('Please select a time!');
                 return;
             }
 
             if (schedules.some(s => s.time === time)) {
-                alert('⚠️ Schedule for this time already exists!');
+                alert('Schedule for this time already exists!');
                 return;
             }
 
@@ -925,7 +925,7 @@
             renderSchedules();
             syncSchedulesToESP32();
             
-            addLog(`⏰ Schedule added: ${time} - ${portion} portions`, 'success');
+            addLog(`Schedule added: ${time} - ${portion} portions`, 'success');
         }
 
         function deleteSchedule(time) {
@@ -933,7 +933,7 @@
             saveSchedules();
             renderSchedules();
             syncSchedulesToESP32();
-            addLog(`🗑️ Schedule deleted: ${time}`, 'warning');
+            addLog(`Schedule deleted: ${time}`, 'warning');
         }
 
         function renderSchedules() {
@@ -947,8 +947,8 @@
             container.innerHTML = schedules.map(s => `
                 <div class="schedule-item">
                     <div class="schedule-info">
-                        <div class="schedule-time">⏰ ${s.time}</div>
-                        <div class="schedule-portion">🍽️ ${s.portion} portions</div>
+                        <div class="schedule-time">${s.time}</div>
+                        <div class="schedule-portion">${s.portion} portions</div>
                     </div>
                     <button class="btn-delete" onclick="deleteSchedule('${s.time}')">Delete</button>
                 </div>
@@ -972,7 +972,7 @@
             
             const scheduleData = JSON.stringify(schedules);
             mqttClient.publish(config.topics.schedule, scheduleData);
-            console.log('📅 Schedules synced to ESP32');
+            console.log('Schedules synced to ESP32');
         }
 
         function startScheduleChecker() {
@@ -1013,7 +1013,7 @@
 
             mqttClient.publish(config.topics.feedNow, '1');
             mqttClient.publish(config.topics.portion, schedule.portion.toString());
-            addLog(`⏰ Scheduled: ${schedule.time} - ${schedule.portion} portions`, 'warning');
+            addLog(`Scheduled: ${schedule.time} - ${schedule.portion} portions`, 'warning');
         }
 
         function updateStatus(connected) {
